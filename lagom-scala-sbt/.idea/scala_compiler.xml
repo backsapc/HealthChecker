@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ScalaCompilerConfiguration">
+    <profile name="sbt 1" modules="healthchecker,healthchecker-api,healthchecker-impl,healthchecker-stream-api,healthchecker-stream-impl,lagom-scala-sbt_3859" />
+  </component>
+</project>
