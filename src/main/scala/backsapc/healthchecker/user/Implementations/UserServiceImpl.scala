@@ -33,7 +33,8 @@ class UserServiceImpl(accountRepository: AccountRepository, bСrypt: AsyncBcrypt
       _ <- existsWithLogin
       _ <- existsWithEmail
       _ <- existsWithId
-      result <- accountRepository.add(requestToAccount(account)).map(accountToViewModel)
+      passwordHash <- bСrypt.hash(account.password)
+      result <- accountRepository.add(Account(account.id, account.login, passwordHash, account.email)).map(accountToViewModel)
     } yield RegisterSuccess(result)
 
     registrationResult.recover {
@@ -63,9 +64,6 @@ class UserServiceImpl(accountRepository: AccountRepository, bСrypt: AsyncBcrypt
 
   def findByLogin(login: String): Future[Option[AccountViewModel]] =
     accountRepository.getByLogin(login).map(_.map(accountToViewModel))
-
-  private def requestToAccount(registerRequest: RegisterRequest): Account =
-    Account(registerRequest.id, registerRequest.login, registerRequest.password, registerRequest.email)
 
   private def accountToViewModel(account: Account): AccountViewModel =
     AccountViewModel(account.id, account.login, account.email)

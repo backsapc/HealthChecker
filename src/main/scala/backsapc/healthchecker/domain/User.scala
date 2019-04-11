@@ -2,5 +2,7 @@ package backsapc.healthchecker.domain
 
 import java.util.UUID
 
-case class Account(id: UUID, login: String, password: String, email: String)
+import backsapc.healthchecker.user.bcrypt.BcryptHash
+
+case class Account(id: UUID, login: String, password: BcryptHash, email: String)
 

@@ -6,7 +6,7 @@ import backsapc.healthchecker.user.Contracts.AccountViewModel
 import backsapc.healthchecker.user.Contracts.UserServiceOperationResults._
 import backsapc.healthchecker.user.Implementations.UserServiceImpl
 import backsapc.healthchecker.user.RegisterRequest
-import backsapc.healthchecker.user.bcrypt.AsyncBcrypt
+import backsapc.healthchecker.user.bcrypt.{AsyncBcrypt, BcryptHash}
 import org.scalamock.scalatest.AsyncMockFactory
 import org.scalatest.{AsyncFlatSpec, Matchers}
 
@@ -17,7 +17,14 @@ class UserServiceImplTest extends AsyncFlatSpec with AsyncMockFactory with Match
   val mockAsyncBcrypt: AsyncBcrypt = stub[AsyncBcrypt]
   val userService: UserServiceImpl = new UserServiceImpl(mockAccountRepository, mockAsyncBcrypt)
 
-  val testAcc = Account(UUID.fromString("4485936a-6271-4964-a406-ed1ca9cf194f"), login = "usver", password = "password", email = "mail@com.com")
+  val testAcc = Account(UUID.fromString("4485936a-6271-4964-a406-ed1ca9cf194f"),
+    login = "usver",
+    password = BcryptHash("password"),
+    email = "mail@com.com")
+  val regReq = RegisterRequest(UUID.fromString("4485936a-6271-4964-a406-ed1ca9cf194f"),
+    login = "usver",
+    password = "password",
+    email = "mail@com.com")
 
   behavior of "kek"
 
@@ -25,11 +32,12 @@ class UserServiceImplTest extends AsyncFlatSpec with AsyncMockFactory with Match
     AccountViewModel(account.id, account.login, account.email)
 
   "User service " should " register user" in {
+    (mockAsyncBcrypt.hash _).when(*, *).returns(Future successful BcryptHash(testAcc.password.hash))
     (mockAccountRepository.add _).when(*).returns(Future successful testAcc)
     (mockAccountRepository.existsWithLogin _).when(*).returns(Future successful false)
     (mockAccountRepository.existsWithEmail _).when(*).returns(Future successful false)
     (mockAccountRepository.existsWithId _).when(*).returns(Future successful false)
-    userService.register(RegisterRequest(testAcc.id, testAcc.login, testAcc.password, testAcc.email))
+    userService.register(regReq)
       .map(_ shouldBe RegisterSuccess(mapToAccountVM(testAcc)))
   }
 
@@ -38,7 +46,7 @@ class UserServiceImplTest extends AsyncFlatSpec with AsyncMockFactory with Match
     (mockAccountRepository.existsWithLogin _).when(*).returns(Future successful false)
     (mockAccountRepository.existsWithEmail _).when(*).returns(Future successful false)
     (mockAccountRepository.existsWithId _).when(*).returns(Future successful true)
-    userService.register(RegisterRequest(testAcc.id, testAcc.login, testAcc.password, testAcc.email))
+    userService.register(regReq)
       .map(_ shouldBe IdConflict(testAcc.id))
   }
 
@@ -47,7 +55,7 @@ class UserServiceImplTest extends AsyncFlatSpec with AsyncMockFactory with Match
     (mockAccountRepository.existsWithLogin _).when(*).returns(Future successful true)
     (mockAccountRepository.existsWithEmail _).when(*).returns(Future successful false)
     (mockAccountRepository.existsWithId _).when(*).returns(Future successful false)
-    userService.register(RegisterRequest(testAcc.id, testAcc.login, testAcc.password, testAcc.email))
+    userService.register(regReq)
       .map(_ shouldBe LoginConflict(testAcc.login))
   }
 
@@ -56,7 +64,7 @@ class UserServiceImplTest extends AsyncFlatSpec with AsyncMockFactory with Match
     (mockAccountRepository.existsWithLogin _).when(*).returns(Future successful false)
     (mockAccountRepository.existsWithEmail _).when(*).returns(Future successful true)
     (mockAccountRepository.existsWithId _).when(*).returns(Future successful false)
-    userService.register(RegisterRequest(testAcc.id, testAcc.login, testAcc.password, testAcc.email))
+    userService.register(regReq)
       .map(_ shouldBe EmailConflict(testAcc.email))
   }
 
@@ -82,24 +90,24 @@ class UserServiceImplTest extends AsyncFlatSpec with AsyncMockFactory with Match
 
   "User service " should " update user password" in {
     val testPassword = "some unique pass"
-    (mockAsyncBcrypt.hash _).when(*, *).returns(Future successful testPassword)
+    (mockAsyncBcrypt.hash _).when(*, *).returns(Future successful BcryptHash(testPassword))
     (mockAsyncBcrypt.verify _).when(*, *).returns(Future successful true)
     (mockAccountRepository.getById _).when(*).returns(Future successful Some(testAcc))
-    (mockAccountRepository.updatePassword _).when(*, *).returns(Future successful testAcc.copy(password = testPassword))
-    userService.update(testAcc.id, testAcc.password, testPassword)
+    (mockAccountRepository.updatePassword _).when(*, *).returns(Future successful testAcc.copy(password = BcryptHash(testPassword)))
+    userService.update(testAcc.id, testAcc.password.hash, testPassword)
       .map(_ shouldBe UpdateSuccess())
   }
 
   "User service " should " fail because invalid user id" in {
     val testPassword = "some unique pass"
     (mockAccountRepository.getById _).when(*).returns(Future successful None)
-    userService.update(testAcc.id, testAcc.password, testPassword)
+    userService.update(testAcc.id, testAcc.password.hash, testPassword)
       .map(_ shouldBe NoSuchUserError(testAcc.id))
   }
 
   "User service " should " fail because invalid old password" in {
     val testPassword = "some unique pass"
-    (mockAsyncBcrypt.hash _).when(*, *).returns(Future successful testPassword)
+    (mockAsyncBcrypt.hash _).when(*, *).returns(Future successful BcryptHash(testPassword))
     (mockAsyncBcrypt.verify _).when(*, *).returns(Future successful false)
     (mockAccountRepository.getById _).when(*).returns(Future successful Some(testAcc))
     userService.update(testAcc.id, testPassword, testPassword)
@@ -108,11 +116,11 @@ class UserServiceImplTest extends AsyncFlatSpec with AsyncMockFactory with Match
 
   "User service " should " fail with NOSuchElementException because of repository inconsistency" in {
     val testPassword = "some unique pass"
-    (mockAsyncBcrypt.hash _).when(*, *).returns(Future successful testPassword)
+    (mockAsyncBcrypt.hash _).when(*, *).returns(Future successful BcryptHash(testPassword))
     (mockAsyncBcrypt.verify _).when(*, *).returns(Future successful true)
     (mockAccountRepository.getById _).when(*).returns(Future successful Some(testAcc))
     (mockAccountRepository.updatePassword _).when(*, *).returns(Future.failed(new NoSuchElementException))
-    userService.update(testAcc.id, testAcc.password, testPassword).recover { case _: NoSuchElementException => true }.map {
+    userService.update(testAcc.id, regReq.password, testPassword).recover { case _: NoSuchElementException => true }.map {
       _ shouldBe true
     }
   }

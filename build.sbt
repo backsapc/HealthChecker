@@ -25,6 +25,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.slick" %% "slick-hikaricp" % "3.3.0",
   "com.h2database" % "h2" % "1.4.199",
   "com.jason-goodwin" %% "authentikat-jwt"      % "0.4.5",
+  "com.github.t3hnar" %% "scala-bcrypt"         % "4.0",
   
   "com.typesafe.akka" %% "akka-http"            % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
