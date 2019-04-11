@@ -5,52 +5,78 @@ import java.util.UUID
 import backsapc.healthchecker.common.Config
 import backsapc.healthchecker.dao.AccountRepository
 import backsapc.healthchecker.domain.Account
-import backsapc.healthchecker.user.Contracts.UserService
+import backsapc.healthchecker.user.Contracts.UserServiceOperationResults._
+import backsapc.healthchecker.user.Contracts.{AccountViewModel, UserService}
 import backsapc.healthchecker.user.RegisterRequest
+import backsapc.healthchecker.user.bcrypt.AsyncBcrypt
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class UserServiceImpl(accountRepository: AccountRepository)(implicit executionContext: ExecutionContext) extends Config with UserService {
-  def register(account: RegisterRequest): Future[Either[String, Account]] = {
-    val existsWithLogin = accountRepository.existsWithLogin(account.login)
-    val existsWithEmail = accountRepository.existsWithEmail(account.email)
-    val existsWithId = accountRepository.existsWithId(account.id)
+class UserServiceImpl(accountRepository: AccountRepository, bСrypt: AsyncBcrypt)
+                     (implicit executionContext: ExecutionContext) extends Config with UserService {
 
-    val conflicts: Future[Either[String, Unit]] = for {
-      resLogin <- existsWithLogin
-      resEmail <- existsWithEmail
-      resId <- existsWithId
-      conflicted = checkForConflicts(resLogin, resEmail, resId)
-    } yield conflicted
+  def register(account: RegisterRequest): Future[RegisterResult] = {
+    val existsWithLogin = accountRepository.existsWithLogin(account.login).map {
+      case true => throw new LoginConflictException
+      case false => false
+    }
+    val existsWithEmail = accountRepository.existsWithEmail(account.email).map {
+      case true => throw new EmailConflictException
+      case false => false
+    }
+    val existsWithId = accountRepository.existsWithId(account.id).map {
+      case true => throw new IdConflictException
+      case false => false
+    }
 
-    conflicts flatMap {
-      case Right(_) => accountRepository.add(mapRegisterToAccount(account)) map (Right(_))
-      case Left(reason) => Future successful Left(reason)
+    val registrationResult = for {
+      _ <- existsWithLogin
+      _ <- existsWithEmail
+      _ <- existsWithId
+      result <- accountRepository.add(requestToAccount(account)).map(accountToViewModel)
+    } yield RegisterSuccess(result)
+
+    registrationResult.recover {
+      case _: LoginConflictException => LoginConflict(account.login)
+      case _: EmailConflictException => EmailConflict(account.email)
+      case _: IdConflictException => IdConflict(account.id)
     }
   }
 
-  def update(id: UUID, oldPassword: String, newPassword: String): Future[Either[String, Account]] =
+  def update(id: UUID, oldPassword: String, newPassword: String): Future[UpdateResult] = {
     accountRepository.getById(id) flatMap {
-      case Some(user) if user.password == oldPassword =>
-        accountRepository.updatePassword(id, newPassword) map (Right(_))
-      case Some(user) if user.password != oldPassword => Future successful Left("Invalid password")
-      case None => Future successful Left("Invalid user id")
+      case Some(account) => bСrypt.verify(oldPassword, account.password)
+      case None => Future.failed(throw new NoSuchUserException)
+    } flatMap {
+      case true => bСrypt.hash(newPassword).flatMap {
+        accountRepository.updatePassword(id, _).map(_ => UpdateSuccess())
+      }
+      case false => Future.failed(throw new VerificationFailedException)
+    } recover {
+      case _: NoSuchUserException => NoSuchUserError(id)
+      case _: VerificationFailedException => InvalidPassword(oldPassword)
     }
+  }
 
-  def findById(id: UUID): Future[Option[Account]] = accountRepository.getById(id)
+  def findById(id: UUID): Future[Option[AccountViewModel]] =
+    accountRepository.getById(id).map(_.map(accountToViewModel))
 
-  def findByLogin(login: String): Future[Option[Account]] = accountRepository.getByLogin(login)
+  def findByLogin(login: String): Future[Option[AccountViewModel]] =
+    accountRepository.getByLogin(login).map(_.map(accountToViewModel))
 
-  private def mapRegisterToAccount(registerRequest: RegisterRequest): Account =
+  private def requestToAccount(registerRequest: RegisterRequest): Account =
     Account(registerRequest.id, registerRequest.login, registerRequest.password, registerRequest.email)
 
-  private def checkForConflicts(loginConflict: Boolean, emailConflict: Boolean, idConflict: Boolean): Either[String, Unit] =
-    if (loginConflict)
-      Left("User with same login exists")
-    else if (emailConflict)
-      Left("User with same email exists")
-    else if (idConflict)
-      Left("User with same id exists")
-    else
-      Right(())
+  private def accountToViewModel(account: Account): AccountViewModel =
+    AccountViewModel(account.id, account.login, account.email)
 }
+
+class LoginConflictException extends Exception
+
+class EmailConflictException extends Exception
+
+class IdConflictException extends Exception
+
+class VerificationFailedException extends Exception
+
+class NoSuchUserException extends Exception

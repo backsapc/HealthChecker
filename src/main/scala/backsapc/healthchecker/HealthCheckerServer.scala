@@ -6,6 +6,7 @@ import akka.stream.ActorMaterializer
 import backsapc.healthchecker.dao.InMemoryAccountRepository
 import backsapc.healthchecker.user.Implementations.{TokenServiceImpl, UserServiceImpl}
 import backsapc.healthchecker.user.UserRouter
+import backsapc.healthchecker.user.bcrypt.AsyncBcryptImpl
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -19,8 +20,10 @@ object HealthCheckerServer extends App {
 
   val accountRepository = new InMemoryAccountRepository
 
-  val tokenService = new TokenServiceImpl(accountRepository)
-  val userService = new UserServiceImpl(accountRepository)
+  val bcrypt = new AsyncBcryptImpl
+
+  val tokenService = new TokenServiceImpl(accountRepository, bcrypt)
+  val userService = new UserServiceImpl(accountRepository, bcrypt)
   val user = new UserRouter(tokenService, userService)
 
   lazy val routes = user.routes
