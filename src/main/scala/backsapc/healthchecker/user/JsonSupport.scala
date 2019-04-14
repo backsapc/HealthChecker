@@ -5,9 +5,16 @@ import java.util.UUID
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import backsapc.healthchecker.domain.Account
-import backsapc.healthchecker.user.Contracts.TokenServiceOperationResults.{GenerateResult, WrongPasswordError}
+import backsapc.healthchecker.user.Contracts.TokenServiceOperationResults.{
+  GenerateResult,
+  WrongPasswordError
+}
 import backsapc.healthchecker.user.Contracts.UserServiceOperationResults._
-import backsapc.healthchecker.user.Contracts.{AccountViewModel, TokenServiceOperationResults}
+import backsapc.healthchecker.user.Contracts.{
+  AccountViewModel,
+  TokenServiceOperationResults
+}
+import backsapc.healthchecker.user.bcrypt.BcryptHash
 import spray.json.{DeserializationException, JsString, JsValue, JsonFormat}
 
 trait JsonSupport extends SprayJsonSupport {
@@ -20,8 +27,19 @@ trait JsonSupport extends SprayJsonSupport {
     def read(value: JsValue): UUID = {
       value match {
         case JsString(uuid) => UUID.fromString(uuid)
-        case _ => throw DeserializationException("Expected hexadecimal UUID string")
+        case _ =>
+          throw DeserializationException("Expected hexadecimal UUID string")
       }
+    }
+  }
+
+  implicit object BrcyptHashFormat extends JsonFormat[BcryptHash] {
+    def write(m: BcryptHash) = JsString(s"${m.hash}")
+
+    def read(json: JsValue): BcryptHash = json match {
+      case JsString(s) => BcryptHash(s)
+      case _ =>
+        throw DeserializationException("String expected")
     }
   }
 
@@ -35,8 +53,12 @@ trait JsonSupport extends SprayJsonSupport {
   implicit val registerResult = jsonFormat0(() => new RegisterResult)
 
   implicit val wrongPasswordJsonFormat = jsonFormat1(WrongPasswordError)
-  implicit val noSuchUserJsonFormat = jsonFormat1(TokenServiceOperationResults.NoSuchUserError)
-  implicit val generateSuccessJsonFormat = jsonFormat1(TokenServiceOperationResults.GenerateSuccess)
+  implicit val noSuchUserJsonFormat = jsonFormat1(
+    TokenServiceOperationResults.NoSuchUserError
+  )
+  implicit val generateSuccessJsonFormat = jsonFormat1(
+    TokenServiceOperationResults.GenerateSuccess
+  )
   implicit val generateResult = jsonFormat0(() => new GenerateResult)
 
   implicit val wrongPasswordUpdateJsonFormat = jsonFormat1(InvalidPassword)
