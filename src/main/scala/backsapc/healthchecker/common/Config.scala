@@ -10,7 +10,8 @@ trait Config {
   protected val dbUser = config.getString("db.user")
   protected val dbPassword = config.getString("db.password")
 
-  protected val tokenExpiryPeriodInDays = config.getInt("auth.tokenExpiryPeriodInDays")
-  protected val secretKey               = config.getString("auth.secretKey")
-  protected val headerType              = config.getString("auth.jwtHeaderType")
+  protected val tokenExpiryPeriodInDays =
+    config.getInt("auth.tokenExpiryPeriodInDays")
+  protected val secretKey = config.getString("auth.secretKey")
+  protected val headerType = config.getString("auth.jwtHeaderType")
 }

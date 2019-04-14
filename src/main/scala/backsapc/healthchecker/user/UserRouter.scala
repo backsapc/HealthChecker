@@ -9,40 +9,52 @@ import akka.http.scaladsl.server.directives.PathDirectives.path
 import akka.http.scaladsl.server.directives.RouteDirectives.complete
 import akka.http.scaladsl.server.{AuthorizationFailedRejection, Route}
 import backsapc.healthchecker.common.JwtService
-import backsapc.healthchecker.user.Contracts.TokenServiceOperationResults.{GenerateSuccess, NoSuchUserError, WrongPasswordError}
+import backsapc.healthchecker.user.Contracts.TokenServiceOperationResults.{
+  GenerateSuccess,
+  NoSuchUserError,
+  WrongPasswordError
+}
 import backsapc.healthchecker.user.Contracts.UserServiceOperationResults._
 import backsapc.healthchecker.user.Contracts.{TokenService, UserService}
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
-case class RegisterRequest(id: UUID, login: String, password: String, email: String)
+case class RegisterRequest(
+  id: UUID,
+  login: String,
+  password: String,
+  email: String
+)
 
 case class LoginRequest(login: String, password: String)
 
-class UserRouter(tokenService: TokenService, userService: UserService)
-                (implicit executionContext: ExecutionContext) extends JwtService with JsonSupport {
+class UserRouter(tokenService: TokenService, userService: UserService)(
+  implicit executionContext: ExecutionContext
+) extends JwtService
+    with JsonSupport {
 
   val routes: Route = path("user") {
     post {
       entity(as[RegisterRequest]) { register =>
         complete {
           userService.register(register).map[ToResponseMarshallable] {
-            case RegisterSuccess(account) => StatusCodes.Created -> account
-            case error: LoginConflict => StatusCodes.Conflict -> error
-            case error: EmailConflict => StatusCodes.Conflict -> error
-            case error: IdConflict => StatusCodes.Conflict -> error
-            case x: RegisterResult => StatusCodes.InternalServerError -> x
+            case RegisterSuccess(account) => StatusCodes.Created             -> account
+            case error: LoginConflict     => StatusCodes.Conflict            -> error
+            case error: EmailConflict     => StatusCodes.Conflict            -> error
+            case error: IdConflict        => StatusCodes.Conflict            -> error
+            case x: RegisterResult        => StatusCodes.InternalServerError -> x
           }
         }
       }
     } ~ (get & authenticated) { claims =>
       complete {
         getId(claims) match {
-          case Some(id) => userService.findById(id).map[ToResponseMarshallable] {
-            case Some(account) => StatusCodes.Created -> account
-            case None => StatusCodes.NotFound
-          }
+          case Some(id) =>
+            userService.findById(id).map[ToResponseMarshallable] {
+              case Some(account) => StatusCodes.Created -> account
+              case None          => StatusCodes.NotFound
+            }
           case None => StatusCodes.NotFound
         }
       }
@@ -51,12 +63,15 @@ class UserRouter(tokenService: TokenService, userService: UserService)
     post {
       entity(as[LoginRequest]) { login =>
         onComplete(tokenService.generate(login)) {
-          case Success(value) => value match {
-            case success: GenerateSuccess => complete(StatusCodes.Created -> success)
-            case noSuchUser: NoSuchUserError => complete(StatusCodes.NotFound -> noSuchUser)
-            case _: WrongPasswordError => reject(AuthorizationFailedRejection)
-            case x => complete(StatusCodes.InternalServerError -> x)
-          }
+          case Success(value) =>
+            value match {
+              case success: GenerateSuccess =>
+                complete(StatusCodes.Created -> success)
+              case noSuchUser: NoSuchUserError =>
+                complete(StatusCodes.NotFound -> noSuchUser)
+              case _: WrongPasswordError => reject(AuthorizationFailedRejection)
+              case x                     => complete(StatusCodes.InternalServerError -> x)
+            }
           case Failure(_) => complete(StatusCodes.InternalServerError)
         }
       }

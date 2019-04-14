@@ -9,7 +9,8 @@ import scala.concurrent.Future
 
 object UserServiceOperationResults {
   sealed class RegisterResult
-  final case class RegisterSuccess(account: AccountViewModel) extends RegisterResult
+  final case class RegisterSuccess(account: AccountViewModel)
+      extends RegisterResult
   final case class IdConflict(id: UUID) extends RegisterResult
   final case class LoginConflict(login: String) extends RegisterResult
   final case class EmailConflict(email: String) extends RegisterResult
@@ -25,7 +26,11 @@ case class AccountViewModel(id: UUID, login: String, email: String)
 trait UserService {
   def register(account: RegisterRequest): Future[RegisterResult]
 
-  def update(id: UUID, oldPassword: String, newPassword: String): Future[UpdateResult]
+  def update(
+    id: UUID,
+    oldPassword: String,
+    newPassword: String
+  ): Future[UpdateResult]
 
   def findById(id: UUID): Future[Option[AccountViewModel]]
 

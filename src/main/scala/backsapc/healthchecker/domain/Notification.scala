@@ -1,5 +1,3 @@
 package backsapc.healthchecker.domain
 
-class Notification {
-
-}
+class Notification {}
