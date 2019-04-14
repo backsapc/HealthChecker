@@ -38,5 +38,6 @@ libraryDependencies ++= Seq(
 )
 
 scalacOptions in ThisBuild ++= scalacCompileOpts
+coverageEnabled := true
 
 enablePlugins(JavaAppPackaging)
