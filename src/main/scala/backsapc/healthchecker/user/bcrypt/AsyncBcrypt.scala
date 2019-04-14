@@ -2,9 +2,10 @@ package backsapc.healthchecker.user.bcrypt
 
 import com.github.t3hnar.bcrypt.BCryptStrOps
 
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.{blocking, ExecutionContext, Future}
 
 class BcryptHash(val hash: String) extends AnyVal
+
 object BcryptHash {
   def apply(hash: String): BcryptHash = new BcryptHash(hash)
 
@@ -19,7 +20,8 @@ trait AsyncBcrypt {
 
 }
 
-class AsyncBcryptImpl(implicit executionContext: ExecutionContext) extends AsyncBcrypt {
+class AsyncBcryptImpl(implicit executionContext: ExecutionContext)
+    extends AsyncBcrypt {
 
   override def hash(password: String, rounds: Int): Future[BcryptHash] =
     Future {
