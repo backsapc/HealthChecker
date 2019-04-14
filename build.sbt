@@ -2,6 +2,7 @@ name := "HealthChecker"
 version := "0.1"
 scalaVersion in ThisBuild := "2.12.8"
 organization in ThisBuild := "org.backsapc"
+maintainer := "backsapce@hotmail.com"
 
 // https://docs.scala-lang.org/overviews/compiler-options/index.html
 val scalacCompileOpts = Seq(
@@ -41,3 +42,4 @@ scalacOptions in ThisBuild ++= scalacCompileOpts
 coverageEnabled := true
 
 enablePlugins(JavaAppPackaging)
+enablePlugins(UniversalPlugin)
