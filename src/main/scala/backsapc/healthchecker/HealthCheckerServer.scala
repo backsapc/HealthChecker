@@ -4,7 +4,10 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import backsapc.healthchecker.dao.InMemoryAccountRepository
-import backsapc.healthchecker.user.Implementations.{TokenServiceImpl, UserServiceImpl}
+import backsapc.healthchecker.user.Implementations.{
+  TokenServiceImpl,
+  UserServiceImpl
+}
 import backsapc.healthchecker.user.UserRouter
 import backsapc.healthchecker.user.bcrypt.AsyncBcryptImpl
 
@@ -14,7 +17,7 @@ import scala.util.{Failure, Success}
 
 object HealthCheckerServer extends App {
 
-  implicit val system: ActorSystem = ActorSystem("helloAkkaHttpServer")
+  implicit val system: ActorSystem = ActorSystem("healthAkkaHttpServer")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContext = system.dispatcher
 
@@ -28,7 +31,8 @@ object HealthCheckerServer extends App {
 
   lazy val routes = user.routes
 
-  val serverBinding: Future[Http.ServerBinding] = Http().bindAndHandle(routes, "0.0.0.0", 8080)
+  val serverBinding: Future[Http.ServerBinding] =
+    Http().bindAndHandle(routes, "0.0.0.0", 8080)
 
   serverBinding.onComplete {
     case Success(bound) =>
