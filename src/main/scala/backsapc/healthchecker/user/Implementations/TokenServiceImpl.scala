@@ -32,8 +32,12 @@ class TokenServiceImpl(repository: AccountRepository, bCrypt: AsyncBcrypt)(impli
     }
 
   private def setClaims(id: UUID, username: String, expiryPeriodInDays: Long) =
-    JwtClaimsSet(Map("user" -> username, "id" -> id,
-      "expiredAt" -> (System.currentTimeMillis() + TimeUnit.DAYS
-        .toMillis(expiryPeriodInDays)))
+    JwtClaimsSet(
+      Map(
+        "user" -> username,
+        "id"   -> id.toString,
+        "expiredAt" -> (System.currentTimeMillis() + TimeUnit.DAYS
+          .toMillis(expiryPeriodInDays))
+      )
     )
 }
