@@ -38,8 +38,7 @@ trait JsonSupport extends SprayJsonSupport {
 
     def read(json: JsValue): BcryptHash = json match {
       case JsString(s) => BcryptHash(s)
-      case _ =>
-        throw DeserializationException("String expected")
+      case _           => throw DeserializationException("String expected")
     }
   }
 

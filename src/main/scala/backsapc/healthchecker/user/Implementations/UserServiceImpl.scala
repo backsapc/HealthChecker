@@ -12,49 +12,58 @@ import backsapc.healthchecker.user.bcrypt.AsyncBcrypt
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class UserServiceImpl(accountRepository: AccountRepository, bСrypt: AsyncBcrypt)
-                     (implicit executionContext: ExecutionContext) extends Config with UserService {
+class UserServiceImpl(accountRepository: AccountRepository, bСrypt: AsyncBcrypt)(
+  implicit executionContext: ExecutionContext
+) extends Config
+    with UserService {
 
   def register(account: RegisterRequest): Future[RegisterResult] = {
     val existsWithLogin = accountRepository.existsWithLogin(account.login).map {
-      case true => throw new LoginConflictException
+      case true  => throw new LoginConflictException
       case false => false
     }
     val existsWithEmail = accountRepository.existsWithEmail(account.email).map {
-      case true => throw new EmailConflictException
+      case true  => throw new EmailConflictException
       case false => false
     }
     val existsWithId = accountRepository.existsWithId(account.id).map {
-      case true => throw new IdConflictException
+      case true  => throw new IdConflictException
       case false => false
     }
 
     val registrationResult = for {
-      _ <- existsWithLogin
-      _ <- existsWithEmail
-      _ <- existsWithId
+      _            <- existsWithLogin
+      _            <- existsWithEmail
+      _            <- existsWithId
       passwordHash <- bСrypt.hash(account.password)
-      result <- accountRepository.add(Account(account.id, account.login, passwordHash, account.email)).map(accountToViewModel)
+      result <- accountRepository
+        .add(Account(account.id, account.login, passwordHash, account.email))
+        .map(accountToViewModel)
     } yield RegisterSuccess(result)
 
     registrationResult.recover {
       case _: LoginConflictException => LoginConflict(account.login)
       case _: EmailConflictException => EmailConflict(account.email)
-      case _: IdConflictException => IdConflict(account.id)
+      case _: IdConflictException    => IdConflict(account.id)
     }
   }
 
-  def update(id: UUID, oldPassword: String, newPassword: String): Future[UpdateResult] = {
+  def update(
+    id: UUID,
+    oldPassword: String,
+    newPassword: String
+  ): Future[UpdateResult] = {
     accountRepository.getById(id) flatMap {
       case Some(account) => bСrypt.verify(oldPassword, account.password)
-      case None => Future.failed(throw new NoSuchUserException)
+      case None          => Future.failed(throw new NoSuchUserException)
     } flatMap {
-      case true => bСrypt.hash(newPassword).flatMap {
-        accountRepository.updatePassword(id, _).map(_ => UpdateSuccess())
-      }
+      case true =>
+        bСrypt.hash(newPassword).flatMap {
+          accountRepository.updatePassword(id, _).map(_ => UpdateSuccess())
+        }
       case false => Future.failed(throw new VerificationFailedException)
     } recover {
-      case _: NoSuchUserException => NoSuchUserError(id)
+      case _: NoSuchUserException         => NoSuchUserError(id)
       case _: VerificationFailedException => InvalidPassword(oldPassword)
     }
   }
