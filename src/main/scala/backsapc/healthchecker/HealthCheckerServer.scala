@@ -2,14 +2,17 @@ package backsapc.healthchecker
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
-import backsapc.healthchecker.dao.InMemoryAccountRepository
-import backsapc.healthchecker.user.Implementations.{
-  TokenServiceImpl,
-  UserServiceImpl
-}
+import backsapc.healthchecker.checker.CheckerRouter
+import backsapc.healthchecker.checker.contracts.CheckerService
+import backsapc.healthchecker.checker.dao.InMemoryCheckerRepository
+import backsapc.healthchecker.checker.implementation.CheckerServiceImpl
+import backsapc.healthchecker.user.Implementations.{TokenServiceImpl, UserServiceImpl}
 import backsapc.healthchecker.user.UserRouter
 import backsapc.healthchecker.user.bcrypt.AsyncBcryptImpl
+import backsapc.healthchecker.user.dao.InMemoryAccountRepository
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -29,7 +32,11 @@ object HealthCheckerServer extends App {
   val userService = new UserServiceImpl(accountRepository, bcrypt)
   val user = new UserRouter(tokenService, userService)
 
-  lazy val routes = user.routes
+  val checkerRepository = new InMemoryCheckerRepository
+  val checkerService: CheckerService = new CheckerServiceImpl(checkerRepository)
+  val checker = new CheckerRouter(checkerService)
+
+  lazy val routes: Route = user.routes ~ checker.routes
 
   val serverBinding: Future[Http.ServerBinding] =
     Http().bindAndHandle(routes, "0.0.0.0", 8080)
