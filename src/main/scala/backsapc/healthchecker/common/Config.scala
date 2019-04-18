@@ -14,4 +14,10 @@ trait Config {
     config.getInt("auth.tokenExpiryPeriodInDays")
   protected val secretKey = config.getString("auth.secretKey")
   protected val headerType = config.getString("auth.jwtHeaderType")
+
+  protected val minCheckInterval = config.getInt("check.minimumCheckIntervalInSeconds")
+  protected val maxCheckInterval = config.getInt("check.maximumCheckIntervalInSeconds")
+
+  protected val maximumPortNumber = config.getInt("check.maximumPortNumber")
+  protected val minimumPortNumber = config.getInt("check.minimumPortNumber")
 }
