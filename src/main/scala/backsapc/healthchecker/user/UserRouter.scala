@@ -32,7 +32,7 @@ case class LoginRequest(login: String, password: String)
 class UserRouter(tokenService: TokenService, userService: UserService)(
   implicit executionContext: ExecutionContext
 ) extends JwtService
-    with JsonSupport {
+    with UserJsonSupport {
 
   val routes: Route = path("user") {
     post {
@@ -49,13 +49,9 @@ class UserRouter(tokenService: TokenService, userService: UserService)(
       }
     } ~ (get & authenticated) { claims =>
       complete {
-        getId(claims) match {
-          case Some(id) =>
-            userService.findById(id).map[ToResponseMarshallable] {
-              case Some(account) => StatusCodes.Created -> account
-              case None          => StatusCodes.NotFound
-            }
-          case None => StatusCodes.NotFound
+        userService.findById(getId(claims)).map[ToResponseMarshallable] {
+          case Some(account) => StatusCodes.Created -> account
+          case None          => StatusCodes.NotFound
         }
       }
     }

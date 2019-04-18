@@ -1,4 +1,4 @@
-package backsapc.healthchecker.domain
+package backsapc.healthchecker.user.domain
 
 import java.util.UUID
 

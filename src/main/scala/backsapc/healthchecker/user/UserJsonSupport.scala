@@ -1,10 +1,7 @@
 package backsapc.healthchecker.user
 
 //#json-support
-import java.util.UUID
-
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import backsapc.healthchecker.domain.Account
+import backsapc.healthchecker.common.JsonSupport
 import backsapc.healthchecker.user.Contracts.TokenServiceOperationResults.{
   GenerateResult,
   WrongPasswordError
@@ -14,33 +11,11 @@ import backsapc.healthchecker.user.Contracts.{
   AccountViewModel,
   TokenServiceOperationResults
 }
-import backsapc.healthchecker.user.bcrypt.BcryptHash
-import spray.json.{DeserializationException, JsString, JsValue, JsonFormat}
+import backsapc.healthchecker.user.domain.Account
 
-trait JsonSupport extends SprayJsonSupport {
+trait UserJsonSupport extends JsonSupport {
   // import the default encoders for primitive types (Int, String, Lists etc)
   import spray.json.DefaultJsonProtocol._
-
-  implicit object UUIDFormat extends JsonFormat[UUID] {
-    def write(uuid: UUID) = JsString(uuid.toString)
-
-    def read(value: JsValue): UUID = {
-      value match {
-        case JsString(uuid) => UUID.fromString(uuid)
-        case _ =>
-          throw DeserializationException("Expected hexadecimal UUID string")
-      }
-    }
-  }
-
-  implicit object BrcyptHashFormat extends JsonFormat[BcryptHash] {
-    def write(m: BcryptHash) = JsString(s"${m.hash}")
-
-    def read(json: JsValue): BcryptHash = json match {
-      case JsString(s) => BcryptHash(s)
-      case _           => throw DeserializationException("String expected")
-    }
-  }
 
   implicit val accountJsonFormat = jsonFormat4(Account)
   implicit val loginRequestJsonFormat = jsonFormat2(LoginRequest)

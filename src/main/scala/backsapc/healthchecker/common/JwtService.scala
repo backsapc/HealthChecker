@@ -39,11 +39,11 @@ class JwtService extends Config {
       case _ => reject(AuthorizationFailedRejection)
     }
 
-  def getLogin(claims: Map[String, Any]): Option[String] =
-    claims.get("user").map(_.toString)
+  def getLogin(claims: Map[String, Any]): String =
+    claims.get("user").map(_.toString).get
 
-  def getId(claims: Map[String, Any]): Option[UUID] =
-    claims.get("id").map(id => UUID.fromString(id.toString))
+  def getId(claims: Map[String, Any]): UUID =
+    claims.get("id").map(id => UUID.fromString(id.toString)).get
 
   private def getClaims(jwt: String): Option[Map[String, String]] = jwt match {
     case JsonWebToken(_, claims, _) => claims.asSimpleMap.toOption

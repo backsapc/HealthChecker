@@ -1,9 +1,9 @@
-package backsapc.healthchecker.dao
+package backsapc.healthchecker.user.dao
 
 import java.util.UUID
 
-import backsapc.healthchecker.domain.Account
 import backsapc.healthchecker.user.bcrypt.BcryptHash
+import backsapc.healthchecker.user.domain.Account
 
 import scala.concurrent.Future
 
