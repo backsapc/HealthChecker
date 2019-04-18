@@ -4,7 +4,6 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.AuthorizationFailedRejection
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.http.scaladsl.unmarshalling.Unmarshaller._
-import backsapc.healthchecker.domain.Account
 import backsapc.healthchecker.user.Contracts.TokenServiceOperationResults.{
   GenerateSuccess,
   NoSuchUserError,
@@ -22,10 +21,11 @@ import backsapc.healthchecker.user.Contracts.{
   UserService
 }
 import backsapc.healthchecker.user.bcrypt.BcryptHash
+import backsapc.healthchecker.user.domain.Account
 import backsapc.healthchecker.user.{
-  JsonSupport,
   LoginRequest,
   RegisterRequest,
+  UserJsonSupport,
   UserRouter
 }
 import org.scalamock.scalatest.MockFactory
@@ -39,7 +39,7 @@ class UserRouterTest
     with Matchers
     with ScalatestRouteTest
     with MockFactory
-    with JsonSupport {
+    with UserJsonSupport {
   val mockTokenService: TokenService = stub[TokenService]
   val mockUserService: UserService = stub[UserService]
 

@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
 import backsapc.healthchecker.common.Config
-import backsapc.healthchecker.dao.AccountRepository
+import backsapc.healthchecker.user.dao.AccountRepository
 import backsapc.healthchecker.user.Contracts.TokenService
 import backsapc.healthchecker.user.Contracts.TokenServiceOperationResults.{
   GenerateResult,

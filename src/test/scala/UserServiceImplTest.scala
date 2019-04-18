@@ -1,12 +1,12 @@
 import java.util.UUID
 
-import backsapc.healthchecker.dao.AccountRepository
-import backsapc.healthchecker.domain.Account
 import backsapc.healthchecker.user.Contracts.AccountViewModel
 import backsapc.healthchecker.user.Contracts.UserServiceOperationResults._
 import backsapc.healthchecker.user.Implementations.UserServiceImpl
 import backsapc.healthchecker.user.RegisterRequest
 import backsapc.healthchecker.user.bcrypt.{AsyncBcrypt, BcryptHash}
+import backsapc.healthchecker.user.dao.AccountRepository
+import backsapc.healthchecker.user.domain.Account
 import org.scalamock.scalatest.AsyncMockFactory
 import org.scalatest.{AsyncFlatSpec, Matchers}
 

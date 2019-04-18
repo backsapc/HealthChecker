@@ -3,12 +3,12 @@ package backsapc.healthchecker.user.Implementations
 import java.util.UUID
 
 import backsapc.healthchecker.common.Config
-import backsapc.healthchecker.dao.AccountRepository
-import backsapc.healthchecker.domain.Account
 import backsapc.healthchecker.user.Contracts.UserServiceOperationResults._
 import backsapc.healthchecker.user.Contracts.{AccountViewModel, UserService}
 import backsapc.healthchecker.user.RegisterRequest
 import backsapc.healthchecker.user.bcrypt.AsyncBcrypt
+import backsapc.healthchecker.user.dao.AccountRepository
+import backsapc.healthchecker.user.domain.Account
 
 import scala.concurrent.{ExecutionContext, Future}
 
