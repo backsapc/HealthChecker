@@ -22,6 +22,7 @@ class InMemoryCheckerRepository extends CheckerRepository {
   override def delete(id: UUID): Future[Unit] = Future successful {
     val toDelete = repo.asScala.getOrElse(id, throw new NoSuchElementException)
     repo.asScala.replace(id, toDelete.copy(isDeleted = true))
+    ()
   }
 
   override def get(id: UUID, userId: UUID): Future[Option[Check]] =
