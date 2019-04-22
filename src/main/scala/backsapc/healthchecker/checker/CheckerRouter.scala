@@ -108,6 +108,7 @@ class CheckerRouter(checkerService: CheckerService)(
     } ~ (get & pathEndOrSingleSlash) {
       onComplete(checkerService.getAllForUserId(getId(claims))) {
         case Success(value) => complete(value)
+        case Failure(_)     => complete(StatusCodes.InternalServerError)
       }
     } ~ path(JavaUUID) { id =>
       get {
