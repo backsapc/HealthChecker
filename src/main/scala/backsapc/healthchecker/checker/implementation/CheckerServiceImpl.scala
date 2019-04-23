@@ -1,45 +1,50 @@
 package backsapc.healthchecker.checker.implementation
 
+import java.time.OffsetDateTime
 import java.util.UUID
 
 import backsapc.healthchecker.checker._
 import backsapc.healthchecker.checker.contracts.CheckerService
 import backsapc.healthchecker.checker.dao.CheckerRepository
-import backsapc.healthchecker.checker.domain.{Check, CheckType}
+import backsapc.healthchecker.checker.domain.Mappings._
+import backsapc.healthchecker.checker.domain.{ Check, CheckType, CheckViewModel }
 import backsapc.healthchecker.common.Config
 import io.lemonlabs.uri.parsing.UriParsingException
-import io.lemonlabs.uri.{AbsoluteUrl, IpV4}
+import io.lemonlabs.uri.{ AbsoluteUrl, IpV4 }
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 class CheckerServiceImpl(val repository: CheckerRepository)(
-  implicit executionContext: ExecutionContext
+    implicit executionContext: ExecutionContext
 ) extends Config
     with CheckerService {
 
-  override def getAll(): Future[Seq[Check]] =
+  override def getAll(): Future[Seq[CheckViewModel]] =
     repository
       .getAll()
       .map(
         _.filter(_.isDeleted == false)
           .map(replacePunycode)
+          .map(checkToCheckModel)
       )
 
-  override def getById(id: UUID, userId: UUID): Future[Option[Check]] =
+  override def getById(id: UUID, userId: UUID): Future[Option[CheckViewModel]] =
     repository
       .get(id, userId)
       .map(
         _.filter(_.isDeleted == false)
           .map(replacePunycode)
+          .map(checkToCheckModel)
       )
 
-  override def getAllForUserId(userId: UUID): Future[Seq[Check]] =
+  override def getAllForUserId(userId: UUID): Future[Seq[CheckViewModel]] =
     repository
       .getAllForUser(userId)
       .map(
         _.filter(_.isDeleted == false)
           .map(replacePunycode)
+          .map(checkToCheckModel)
       )
 
   override def delete(id: UUID, userId: UUID): Future[Unit] =
@@ -51,7 +56,7 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
   override def activate(id: UUID, userId: UUID): Future[Unit] =
     updateCheck(id, userId, _.copy(isPaused = false)).map(_ => ())
 
-  override def createHttpCheck(createHttpCheck: CreateHttpCheck, userId: UUID): Future[Check] = {
+  override def createHttpCheck(createHttpCheck: CreateHttpCheck, userId: UUID): Future[CheckViewModel] = {
     val url = parseUri(createHttpCheck.url)
     validateInterval(createHttpCheck.interval)
 
@@ -68,12 +73,14 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
         url = Some(url.toStringPunycode),
         content = None,
         ip = None,
-        port = None
+        port = None,
+        lastCheck = OffsetDateTime.now(),
+        inProgress = false
       )
     )
   }
 
-  override def updateHttpCheck(updateHttpCheck: UpdateHttpCheck, userId: UUID): Future[Check] = {
+  override def updateHttpCheck(updateHttpCheck: UpdateHttpCheck, userId: UUID): Future[CheckViewModel] = {
     val url: AbsoluteUrl = parseUri(updateHttpCheck.url)
     validateInterval(updateHttpCheck.interval)
 
@@ -89,9 +96,9 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
   }
 
   override def createContentCheck(
-    createContentCheck: CreateContentCheck,
-    userId: UUID
-  ): Future[Check] = {
+      createContentCheck: CreateContentCheck,
+      userId: UUID
+  ): Future[CheckViewModel] = {
     val url: AbsoluteUrl = parseUri(createContentCheck.url)
     validateInterval(createContentCheck.interval)
 
@@ -108,15 +115,17 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
         url = Some(url.toStringPunycode),
         content = Some(createContentCheck.content),
         ip = None,
-        port = None
+        port = None,
+        OffsetDateTime.now(),
+        inProgress = false
       )
     )
   }
 
   override def updateContentCheck(
-    updateContentCheck: UpdateContentCheck,
-    userId: UUID
-  ): Future[Check] = {
+      updateContentCheck: UpdateContentCheck,
+      userId: UUID
+  ): Future[CheckViewModel] = {
     val url: AbsoluteUrl = parseUri(updateContentCheck.url)
     validateInterval(updateContentCheck.interval)
 
@@ -132,7 +141,7 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
     )
   }
 
-  override def createPingCheck(createPingCheck: CreatePingCheck, userId: UUID): Future[Check] = {
+  override def createPingCheck(createPingCheck: CreatePingCheck, userId: UUID): Future[CheckViewModel] = {
     val ip = parseIpV4(createPingCheck.ip)
     validatePort(createPingCheck.port)
 
@@ -149,12 +158,14 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
         url = None,
         content = None,
         ip = Some(ip.toString),
-        port = Some(createPingCheck.port)
+        port = Some(createPingCheck.port),
+        OffsetDateTime.now(),
+        inProgress = false
       )
     )
   }
 
-  override def updatePingCheck(updatePingCheck: UpdatePingCheck, userId: UUID): Future[Check] = {
+  override def updatePingCheck(updatePingCheck: UpdatePingCheck, userId: UUID): Future[CheckViewModel] = {
     val ip = parseIpV4(updatePingCheck.ip)
     validatePort(updatePingCheck.port)
 
@@ -170,33 +181,36 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
     )
   }
 
-  private def updateCheck(checkId: UUID, userId: UUID, modifier: Check => Check): Future[Check] =
+  private def updateCheck(checkId: UUID, userId: UUID, modifier: Check => Check): Future[CheckViewModel] =
     repository.get(checkId, userId).flatMap {
       case Some(check) =>
         if (check.isDeleted)
           Future failed new NoSuchElementException
         else if (check.userId == userId)
-          repository.update(checkId, modifier(check))
+          repository.update(checkId, modifier(check)).map(checkToCheckModel)
         else
           Future failed new InvalidUserIdException(userId)
       case None => Future failed new NoSuchElementException
     }
 
-  private def checkForCollisionAndSave(id: UUID, check: Check): Future[Check] =
-    repository.existsWithId(id).flatMap {
-      if (_)
-        Future.failed(new CheckIdCollisionException(id))
-      else
-        repository.save(check)
-    }
+  private def checkForCollisionAndSave(id: UUID, check: Check): Future[CheckViewModel] =
+    repository
+      .existsWithId(id)
+      .flatMap {
+        if (_)
+          Future.failed(new CheckIdCollisionException(id))
+        else
+          repository.save(check)
+      }
+      .map(checkToCheckModel)
 
   private def replacePunycode(check: Check): Check =
     if (check.url.isDefined) check.copy(url = Some(AbsoluteUrl.parse(check.url.get).toString))
     else check
 
   private def validateInterval(
-    interval: Int
-  ): Unit = {
+      interval: Int
+  ): Unit =
     if (minCheckInterval > interval || interval > maxCheckInterval) {
       throw new CheckIntervalOutOfBoundsException(
         provided = interval,
@@ -204,7 +218,6 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
         maxCheckInterval
       )
     }
-  }
 
   private def parseUri(url: String): AbsoluteUrl = AbsoluteUrl.parseTry(url) match {
     case Success(value) => value
@@ -223,8 +236,8 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
   }
 
   private def validatePort(
-    port: Int
-  ): Unit = {
+      port: Int
+  ): Unit =
     if (port < minimumPortNumber || port > maximumPortNumber) {
       throw new PortOutOfBoundsException(
         port,
@@ -232,12 +245,11 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
         max = maximumPortNumber
       )
     }
-  }
 }
 
-class InvalidUserIdException(id: UUID) extends Exception
-class CheckIdCollisionException(id: UUID) extends Exception
+class InvalidUserIdException(id: UUID)                                     extends Exception
+class CheckIdCollisionException(id: UUID)                                  extends Exception
 class CheckIntervalOutOfBoundsException(provided: Int, min: Int, max: Int) extends Exception
-class PortOutOfBoundsException(provided: Int, min: Int, max: Int) extends Exception
-class MalformedUrlException(provided: String) extends Exception
-class MalformedIpException(provided: String) extends Exception
+class PortOutOfBoundsException(provided: Int, min: Int, max: Int)          extends Exception
+class MalformedUrlException(provided: String)                              extends Exception
+class MalformedIpException(provided: String)                               extends Exception
