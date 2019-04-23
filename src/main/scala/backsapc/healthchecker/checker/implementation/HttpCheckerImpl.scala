@@ -24,13 +24,16 @@ class HttpCheckerImpl(implicit actorSystem: ActorSystem, materializer: ActorMate
         method = HttpMethods.GET
       )
     ).map(
-      response => {
-        response.entity.discardBytes()
-        response.status match {
-          case StatusCodes.OK ⇒ SuccessCheckResult(check.id)
-          case _              => FailedCheckResult(check.id, s"Status code ${response.status} does not indicate success.")
+        response => {
+          response.entity.discardBytes()
+          response.status match {
+            case StatusCodes.OK ⇒ SuccessCheckResult(check.id)
+            case _              => FailedCheckResult(check.id, s"Status code ${response.status} does not indicate success.")
+          }
         }
+      )
+      .recover {
+        case error => FailedCheckResult(check.id, s"Your ${check.url} is not available.")
       }
-    )
 
 }
