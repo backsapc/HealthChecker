@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.directives.PathDirectives.path
 import akka.http.scaladsl.server.directives.RouteDirectives.complete
-import akka.http.scaladsl.server.{AuthorizationFailedRejection, Route}
+import akka.http.scaladsl.server.{ AuthorizationFailedRejection, Route }
 import backsapc.healthchecker.common.JwtService
 import backsapc.healthchecker.user.Contracts.TokenServiceOperationResults.{
   GenerateSuccess,
@@ -15,22 +15,22 @@ import backsapc.healthchecker.user.Contracts.TokenServiceOperationResults.{
   WrongPasswordError
 }
 import backsapc.healthchecker.user.Contracts.UserServiceOperationResults._
-import backsapc.healthchecker.user.Contracts.{TokenService, UserService}
+import backsapc.healthchecker.user.Contracts.{ TokenService, UserService }
 
 import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 case class RegisterRequest(
-  id: UUID,
-  login: String,
-  password: String,
-  email: String
+    id: UUID,
+    login: String,
+    password: String,
+    email: String
 )
 
 case class LoginRequest(login: String, password: String)
 
 class UserRouter(tokenService: TokenService, userService: UserService)(
-  implicit executionContext: ExecutionContext
+    implicit executionContext: ExecutionContext
 ) extends JwtService
     with UserJsonSupport {
 
@@ -39,11 +39,11 @@ class UserRouter(tokenService: TokenService, userService: UserService)(
       entity(as[RegisterRequest]) { register =>
         complete {
           userService.register(register).map[ToResponseMarshallable] {
-            case RegisterSuccess(account) => StatusCodes.Created             -> account
-            case error: LoginConflict     => StatusCodes.Conflict            -> error
-            case error: EmailConflict     => StatusCodes.Conflict            -> error
-            case error: IdConflict        => StatusCodes.Conflict            -> error
-            case x: RegisterResult        => StatusCodes.InternalServerError -> x
+            case RegisterSuccess(account) => StatusCodes.Created  -> account
+            case error: LoginConflict     => StatusCodes.Conflict -> error
+            case error: EmailConflict     => StatusCodes.Conflict -> error
+            case error: IdConflict        => StatusCodes.Conflict -> error
+            case error: ConfirmationError => StatusCodes.Conflict -> error
           }
         }
       }

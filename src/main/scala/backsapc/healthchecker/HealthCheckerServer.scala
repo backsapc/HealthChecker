@@ -14,7 +14,11 @@ import backsapc.healthchecker.checker.implementation.{
   PingCheckerImpl
 }
 import backsapc.healthchecker.checker.{ CheckJobScheduler, CheckerRouter }
-import backsapc.healthchecker.user.Implementations.{ TokenServiceImpl, UserServiceImpl }
+import backsapc.healthchecker.common.Config
+import backsapc.healthchecker.notification.NotificationRouter
+import backsapc.healthchecker.notification.dao.InMemoryNotificationRepository
+import backsapc.healthchecker.notification.implementations.{ MailServiceImpl, NotificationServiceImpl, TokenGenerator }
+import backsapc.healthchecker.user.Implementations.{ NotificationClientImpl, TokenServiceImpl, UserServiceImpl }
 import backsapc.healthchecker.user.UserRouter
 import backsapc.healthchecker.user.bcrypt.AsyncBcryptImpl
 import backsapc.healthchecker.user.dao.InMemoryAccountRepository
@@ -23,19 +27,25 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
-object HealthCheckerServer extends App {
+object HealthCheckerServer extends App with Config {
 
   implicit val system: ActorSystem                = ActorSystem("healthAkkaHttpServer")
   implicit val materializer: ActorMaterializer    = ActorMaterializer()
   implicit val executionContext: ExecutionContext = system.dispatcher
 
+  val notificationRepository = new InMemoryNotificationRepository
+  val tokenGenerator         = new TokenGenerator
+  val mailService            = new MailServiceImpl
+  val notificationService    = new NotificationServiceImpl(notificationRepository, tokenGenerator, mailService)
+  val notification           = new NotificationRouter(notificationService)
+
   val accountRepository = new InMemoryAccountRepository
+  val bcrypt            = new AsyncBcryptImpl
 
-  val bcrypt = new AsyncBcryptImpl
-
-  val tokenService = new TokenServiceImpl(accountRepository, bcrypt)
-  val userService  = new UserServiceImpl(accountRepository, bcrypt)
-  val user         = new UserRouter(tokenService, userService)
+  val notificationClient = new NotificationClientImpl(notificationService)
+  val tokenService       = new TokenServiceImpl(accountRepository, bcrypt)
+  val userService        = new UserServiceImpl(accountRepository, bcrypt, notificationClient)
+  val user               = new UserRouter(tokenService, userService)
 
   val checkerRepository              = new InMemoryCheckerRepository
   val checkerHttp                    = new HttpCheckerImpl
@@ -46,10 +56,10 @@ object HealthCheckerServer extends App {
 
   val checkJobScheduler = new CheckJobScheduler()
 
-  lazy val routes: Route = user.routes ~ checker.routes
+  lazy val routes: Route = user.routes ~ checker.routes ~ notification.routes
 
   val serverBinding: Future[Http.ServerBinding] =
-    Http().bindAndHandle(routes, "0.0.0.0", 8080)
+    Http().bindAndHandle(routes, interface, port)
 
   serverBinding.onComplete {
     case Success(bound) =>
