@@ -66,7 +66,6 @@ class UserRouter(tokenService: TokenService, userService: UserService)(
               case noSuchUser: NoSuchUserError =>
                 complete(StatusCodes.NotFound -> noSuchUser)
               case _: WrongPasswordError => reject(AuthorizationFailedRejection)
-              case x                     => complete(StatusCodes.InternalServerError -> x)
             }
           case Failure(_) => complete(StatusCodes.InternalServerError)
         }
