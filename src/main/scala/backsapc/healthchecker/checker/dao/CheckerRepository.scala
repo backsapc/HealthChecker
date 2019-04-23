@@ -1,4 +1,5 @@
 package backsapc.healthchecker.checker.dao
+import java.time.OffsetDateTime
 import java.util.UUID
 
 import backsapc.healthchecker.checker.domain.Check
@@ -13,4 +14,12 @@ trait CheckerRepository {
   def getAllForUser(userId: UUID): Future[Seq[Check]]
   def getAll(): Future[Seq[Check]]
   def existsWithId(id: UUID): Future[Boolean]
+  def getOutdatedChecks(offsetDateTime: OffsetDateTime): Future[Seq[Check]]
+  def markChecksToInProgress(ids: Seq[UUID]): Future[Unit]
+}
+
+trait CheckerJobRepository {
+  def getOutdatedChecks(count: Int): Future[Seq[Check]]
+  def updateCheckLastUpdate(id: UUID): Future[Unit]
+  def updateChecksLastUpdate(ids: Seq[UUID]): Future[Unit]
 }
