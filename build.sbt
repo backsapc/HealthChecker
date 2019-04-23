@@ -30,7 +30,6 @@ libraryDependencies ++= Seq(
   "com.github.t3hnar"  %% "scala-bcrypt"         % "4.0",
   "com.beachape"       %% "enumeratum"           % "1.5.13",
   "io.lemonlabs"       %% "scala-uri"            % "1.4.5",
-  "io.spray"           %% "spray-can"            % "1.3.4",
   "com.typesafe.akka"  %% "akka-http"            % akkaHttpVersion,
   "com.typesafe.akka"  %% "akka-http-spray-json" % akkaHttpVersion,
   "com.typesafe.akka"  %% "akka-http-xml"        % akkaHttpVersion,
