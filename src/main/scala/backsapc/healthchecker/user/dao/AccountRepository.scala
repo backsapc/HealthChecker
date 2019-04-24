@@ -9,6 +9,7 @@ import scala.concurrent.Future
 
 trait AccountRepository {
   def add(account: Account): Future[Account]
+  def delete(id: UUID): Future[Unit]
   def getById(id: UUID): Future[Option[Account]]
   def getByLogin(login: String): Future[Option[Account]]
   def updatePassword(id: UUID, password: BcryptHash): Future[Account]

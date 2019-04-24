@@ -4,16 +4,16 @@ import java.util.UUID
 
 import backsapc.healthchecker.common.Config
 import backsapc.healthchecker.user.Contracts.UserServiceOperationResults._
-import backsapc.healthchecker.user.Contracts.{AccountViewModel, UserService}
+import backsapc.healthchecker.user.Contracts.{ AccountViewModel, NotificationClient, UserService }
 import backsapc.healthchecker.user.RegisterRequest
 import backsapc.healthchecker.user.bcrypt.AsyncBcrypt
 import backsapc.healthchecker.user.dao.AccountRepository
 import backsapc.healthchecker.user.domain.Account
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
-class UserServiceImpl(accountRepository: AccountRepository, bСrypt: AsyncBcrypt)(
-  implicit executionContext: ExecutionContext
+class UserServiceImpl(accountRepository: AccountRepository, bСrypt: AsyncBcrypt, notificationClient: NotificationClient)(
+    implicit executionContext: ExecutionContext
 ) extends Config
     with UserService {
 
@@ -41,18 +41,28 @@ class UserServiceImpl(accountRepository: AccountRepository, bСrypt: AsyncBcrypt
         .map(accountToViewModel)
     } yield RegisterSuccess(result)
 
-    registrationResult.recover {
-      case _: LoginConflictException => LoginConflict(account.login)
-      case _: EmailConflictException => EmailConflict(account.email)
-      case _: IdConflictException    => IdConflict(account.id)
-    }
+    registrationResult
+      .flatMap(
+        success =>
+          notificationClient
+            .createChannelAndSendConfirmation(account.id, account.email)
+            .map(_ => success)
+            .recoverWith {
+              case _ => accountRepository.delete(account.id).map(_ => ConfirmationError(account.email))
+          }
+      )
+      .recover {
+        case _: LoginConflictException => LoginConflict(account.login)
+        case _: EmailConflictException => EmailConflict(account.email)
+        case _: IdConflictException    => IdConflict(account.id)
+      }
   }
 
   def update(
-    id: UUID,
-    oldPassword: String,
-    newPassword: String
-  ): Future[UpdateResult] = {
+      id: UUID,
+      oldPassword: String,
+      newPassword: String
+  ): Future[UpdateResult] =
     accountRepository.getById(id) flatMap {
       case Some(account) => bСrypt.verify(oldPassword, account.password)
       case None          => Future.failed(throw new NoSuchUserException)
@@ -66,7 +76,6 @@ class UserServiceImpl(accountRepository: AccountRepository, bСrypt: AsyncBcrypt
       case _: NoSuchUserException         => NoSuchUserError(id)
       case _: VerificationFailedException => InvalidPassword(oldPassword)
     }
-  }
 
   def findById(id: UUID): Future[Option[AccountViewModel]] =
     accountRepository.getById(id).map(_.map(accountToViewModel))

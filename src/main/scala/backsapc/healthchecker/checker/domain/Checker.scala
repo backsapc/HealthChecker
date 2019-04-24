@@ -14,8 +14,7 @@ case class Check(
     content: Option[String],
     ip: Option[String],
     port: Option[Int],
-    lastCheck: OffsetDateTime,
-    inProgress: Boolean
+    lastCheck: OffsetDateTime
 )
 
 case class CheckViewModel(
@@ -32,10 +31,19 @@ case class CheckViewModel(
 )
 
 case class CheckEvent(
-    id: UUID,
+    id: Long,
     checkId: UUID,
-    createdAt: OffsetDateTime
+    createdAt: OffsetDateTime,
+    status: CheckEventStatus.Value,
+    message: Option[String]
 )
+
+object CheckEventStatus extends Enumeration {
+  val NotStarted = Value("NotStarted")
+  val Started    = Value("Started")
+  val Successful = Value("Successful")
+  val Failed     = Value("Failed")
+}
 
 object CheckType extends Enumeration {
   val Http            = Value("Http")

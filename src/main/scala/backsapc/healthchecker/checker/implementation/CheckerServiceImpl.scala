@@ -74,8 +74,7 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
         content = None,
         ip = None,
         port = None,
-        lastCheck = OffsetDateTime.now(),
-        inProgress = false
+        lastCheck = OffsetDateTime.now()
       )
     )
   }
@@ -116,8 +115,7 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
         content = Some(createContentCheck.content),
         ip = None,
         port = None,
-        OffsetDateTime.now(),
-        inProgress = false
+        OffsetDateTime.now()
       )
     )
   }
@@ -159,8 +157,7 @@ class CheckerServiceImpl(val repository: CheckerRepository)(
         content = None,
         ip = Some(ip.toString),
         port = Some(createPingCheck.port),
-        OffsetDateTime.now(),
-        inProgress = false
+        OffsetDateTime.now()
       )
     )
   }

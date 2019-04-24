@@ -3,14 +3,13 @@ package backsapc.healthchecker.checker.implementation
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.Location
-import akka.stream.{ ActorMaterializer, Materializer }
+import akka.stream.ActorMaterializer
 import backsapc.healthchecker.checker.contracts.HttpContentChecker
 import backsapc.healthchecker.checker.domain.HttpContentCheckModel
 import backsapc.healthchecker.checker.implementation.RichHttpClient.HttpClient
 import backsapc.healthchecker.checker.jobs.{ CheckResult, FailedCheckResult, SuccessCheckResult }
 
-import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor, Future }
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 
 class HttpContentCheckerImpl(implicit actorSystem: ActorSystem, materializer: ActorMaterializer)
     extends HttpContentChecker {
@@ -27,14 +26,17 @@ class HttpContentCheckerImpl(implicit actorSystem: ActorSystem, materializer: Ac
         method = HttpMethods.GET
       )
     ).map(
-      response => {
-        response.status match {
-          case StatusCodes.OK ⇒
-            if (response.entity.toString.contains(check.content)) SuccessCheckResult(check.id)
-            else FailedCheckResult(check.id, s"${check.content} was not in request response.")
-          case _ => FailedCheckResult(check.id, s"Status code ${response.status} does not indicate success.")
+        response => {
+          response.status match {
+            case StatusCodes.OK ⇒
+              if (response.entity.toString.contains(check.content)) SuccessCheckResult(check.id)
+              else FailedCheckResult(check.id, s"${check.content} was not in request response.")
+            case _ => FailedCheckResult(check.id, s"Status code ${response.status} does not indicate success.")
+          }
         }
+      )
+      .recover {
+        case error => FailedCheckResult(check.id, s"Your ${check.url} is not available.")
       }
-    )
 
 }

@@ -1,26 +1,24 @@
 import java.util.UUID
 
-import backsapc.healthchecker.user.Contracts.AccountViewModel
 import backsapc.healthchecker.user.Contracts.UserServiceOperationResults._
+import backsapc.healthchecker.user.Contracts.{ AccountViewModel, NotificationClient }
 import backsapc.healthchecker.user.Implementations.UserServiceImpl
 import backsapc.healthchecker.user.RegisterRequest
-import backsapc.healthchecker.user.bcrypt.{AsyncBcrypt, BcryptHash}
+import backsapc.healthchecker.user.bcrypt.{ AsyncBcrypt, BcryptHash }
 import backsapc.healthchecker.user.dao.AccountRepository
 import backsapc.healthchecker.user.domain.Account
 import org.scalamock.scalatest.AsyncMockFactory
-import org.scalatest.{AsyncFlatSpec, Matchers}
+import org.scalatest.{ AsyncFlatSpec, Matchers }
 
 import scala.concurrent.Future
 
-class UserServiceImplTest
-    extends AsyncFlatSpec
-    with AsyncMockFactory
-    with Matchers {
-  val mockAccountRepository: AccountRepository = stub[AccountRepository]
-  val mockAsyncBcrypt: AsyncBcrypt = stub[AsyncBcrypt]
+class UserServiceImplTest extends AsyncFlatSpec with AsyncMockFactory with Matchers {
+  val mockAccountRepository: AccountRepository   = stub[AccountRepository]
+  val mockAsyncBcrypt: AsyncBcrypt               = stub[AsyncBcrypt]
+  val mockNotificationClient: NotificationClient = stub[NotificationClient]
 
   val userService: UserServiceImpl =
-    new UserServiceImpl(mockAccountRepository, mockAsyncBcrypt)
+    new UserServiceImpl(mockAccountRepository, mockAsyncBcrypt, mockNotificationClient)
 
   val testAcc = Account(
     UUID.fromString("4485936a-6271-4964-a406-ed1ca9cf194f"),
@@ -42,6 +40,7 @@ class UserServiceImplTest
     AccountViewModel(account.id, account.login, account.email)
 
   "User service " should " register user" in {
+    (mockNotificationClient.createChannelAndSendConfirmation _).when(*, *).returns(Future successful { () })
     (mockAsyncBcrypt.hash _)
       .when(*, *)
       .returns(Future successful BcryptHash(testAcc.password.hash))
@@ -61,6 +60,7 @@ class UserServiceImplTest
   }
 
   "User service " should " fail because same id" in {
+    (mockNotificationClient.createChannelAndSendConfirmation _).when(*, *).returns(Future successful { () })
     (mockAccountRepository.add _).when(*).returns(Future successful testAcc)
     (mockAccountRepository.existsWithLogin _)
       .when(*)
@@ -77,6 +77,7 @@ class UserServiceImplTest
   }
 
   "User service " should " fail because same login" in {
+    (mockNotificationClient.createChannelAndSendConfirmation _).when(*, *).returns(Future successful { () })
     (mockAccountRepository.add _).when(*).returns(Future successful testAcc)
     (mockAccountRepository.existsWithLogin _)
       .when(*)
@@ -93,6 +94,7 @@ class UserServiceImplTest
   }
 
   "User service " should " fail because same email" in {
+    (mockNotificationClient.createChannelAndSendConfirmation _).when(*, *).returns(Future successful { () })
     (mockAccountRepository.add _).when(*).returns(Future successful testAcc)
     (mockAccountRepository.existsWithLogin _)
       .when(*)
@@ -109,6 +111,7 @@ class UserServiceImplTest
   }
 
   "User service " should s" return user with id: ${testAcc.id}" in {
+    (mockNotificationClient.createChannelAndSendConfirmation _).when(*, *).returns(Future successful { () })
     (mockAccountRepository.getById _)
       .when(*)
       .returns(Future successful Some(testAcc))
@@ -118,11 +121,13 @@ class UserServiceImplTest
   }
 
   "User service " should s" not found user with id: ${testAcc.id}" in {
+    (mockNotificationClient.createChannelAndSendConfirmation _).when(*, *).returns(Future successful { () })
     (mockAccountRepository.getById _).when(*).returns(Future successful None)
     userService.findById(testAcc.id) map (_ shouldBe None)
   }
 
   "User service " should s" return user with id: ${testAcc.login}" in {
+    (mockNotificationClient.createChannelAndSendConfirmation _).when(*, *).returns(Future successful { () })
     (mockAccountRepository.getByLogin _)
       .when(*)
       .returns(Future successful Some(testAcc))
@@ -132,11 +137,13 @@ class UserServiceImplTest
   }
 
   "User service " should s" not found user with id: ${testAcc.login}" in {
+    (mockNotificationClient.createChannelAndSendConfirmation _).when(*, *).returns(Future successful { () })
     (mockAccountRepository.getByLogin _).when(*).returns(Future successful None)
     userService.findByLogin(testAcc.login) map (_ shouldBe None)
   }
 
   "User service " should " update user password" in {
+    (mockNotificationClient.createChannelAndSendConfirmation _).when(*, *).returns(Future successful { () })
     val testPassword = "some unique pass"
     (mockAsyncBcrypt.hash _)
       .when(*, *)
@@ -156,6 +163,7 @@ class UserServiceImplTest
   }
 
   "User service " should " fail because invalid user id" in {
+    (mockNotificationClient.createChannelAndSendConfirmation _).when(*, *).returns(Future successful { () })
     val testPassword = "some unique pass"
     (mockAccountRepository.getById _).when(*).returns(Future successful None)
     userService
@@ -164,6 +172,7 @@ class UserServiceImplTest
   }
 
   "User service " should " fail because invalid old password" in {
+    (mockNotificationClient.createChannelAndSendConfirmation _).when(*, *).returns(Future successful { () })
     val testPassword = "some unique pass"
     (mockAsyncBcrypt.hash _)
       .when(*, *)
@@ -178,6 +187,7 @@ class UserServiceImplTest
   }
 
   "User service " should " fail with NOSuchElementException because of repository inconsistency" in {
+    (mockNotificationClient.createChannelAndSendConfirmation _).when(*, *).returns(Future successful { () })
     val testPassword = "some unique pass"
     (mockAsyncBcrypt.hash _)
       .when(*, *)

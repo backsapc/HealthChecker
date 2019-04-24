@@ -22,24 +22,25 @@ resolvers ++= Seq("snapshots", "releases").map(Resolver.sonatypeRepo)
 resolvers += "spray repo" at "http://repo.spray.io"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.slick" %% "slick"                % "3.3.0",
-  "org.slf4j"          % "slf4j-nop"             % "1.6.4",
-  "com.typesafe.slick" %% "slick-hikaricp"       % "3.3.0",
-  "com.h2database"     % "h2"                    % "1.4.199",
-  "com.jason-goodwin"  %% "authentikat-jwt"      % "0.4.5",
-  "com.github.t3hnar"  %% "scala-bcrypt"         % "4.0",
-  "com.beachape"       %% "enumeratum"           % "1.5.13",
-  "io.lemonlabs"       %% "scala-uri"            % "1.4.5",
-  "com.typesafe.akka"  %% "akka-http"            % akkaHttpVersion,
-  "com.typesafe.akka"  %% "akka-http-spray-json" % akkaHttpVersion,
-  "com.typesafe.akka"  %% "akka-http-xml"        % akkaHttpVersion,
-  "com.typesafe.akka"  %% "akka-stream"          % akkaVersion,
-  "com.typesafe.akka"  %% "akka-actor"           % akkaVersion,
-  "com.typesafe.akka"  %% "akka-testkit"         % akkaVersion % Test,
-  "com.typesafe.akka"  %% "akka-stream-testkit"  % akkaVersion % Test,
-  "com.typesafe.akka"  %% "akka-http-testkit"    % akkaHttpVersion % Test,
-  "org.scalatest"      %% "scalatest"            % "3.0.3" % Test,
-  "org.scalamock"      %% "scalamock"            % "4.1.0" % Test
+  "com.typesafe.slick"    %% "slick"                % "3.3.0",
+  "org.slf4j"             % "slf4j-nop"             % "1.6.4",
+  "com.typesafe.slick"    %% "slick-hikaricp"       % "3.3.0",
+  "com.h2database"        % "h2"                    % "1.4.199",
+  "com.jason-goodwin"     %% "authentikat-jwt"      % "0.4.5",
+  "com.github.t3hnar"     %% "scala-bcrypt"         % "4.0",
+  "com.beachape"          %% "enumeratum"           % "1.5.13",
+  "io.lemonlabs"          %% "scala-uri"            % "1.4.5",
+  "com.github.daddykotex" %% "courier"              % "1.0.0",
+  "com.typesafe.akka"     %% "akka-http"            % akkaHttpVersion,
+  "com.typesafe.akka"     %% "akka-http-spray-json" % akkaHttpVersion,
+  "com.typesafe.akka"     %% "akka-http-xml"        % akkaHttpVersion,
+  "com.typesafe.akka"     %% "akka-stream"          % akkaVersion,
+  "com.typesafe.akka"     %% "akka-actor"           % akkaVersion,
+  "com.typesafe.akka"     %% "akka-testkit"         % akkaVersion % Test,
+  "com.typesafe.akka"     %% "akka-stream-testkit"  % akkaVersion % Test,
+  "com.typesafe.akka"     %% "akka-http-testkit"    % akkaHttpVersion % Test,
+  "org.scalatest"         %% "scalatest"            % "3.0.3" % Test,
+  "org.scalamock"         %% "scalamock"            % "4.1.0" % Test
 )
 
 scalacOptions in ThisBuild ++= scalacCompileOpts

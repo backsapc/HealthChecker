@@ -40,4 +40,11 @@ class InMemoryAccountRepository extends AccountRepository {
 
   override def existsWithEmail(email: String): Future[Boolean] =
     Future.successful(repo.asScala.exists(_._2.email == email))
+
+  override def delete(id: UUID): Future[Unit] = Future successful {
+    repo.asScala.get(id) match {
+      case Some(account) => repo.remove(id); ()
+      case None          => ()
+    }
+  }
 }
