@@ -9,7 +9,7 @@ import backsapc.healthchecker.checker.domain.Check
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
-class InMemoryCheckerRepository extends CheckerRepository with CheckerJobRepository {
+class InMemoryCheckerRepository extends CheckerRepository {
   private val repo = new ConcurrentHashMap[UUID, Check]()
 
   override def save(check: Check): Future[Check] =
@@ -39,47 +39,23 @@ class InMemoryCheckerRepository extends CheckerRepository with CheckerJobReposit
 
   override def existsWithId(id: UUID): Future[Boolean] = Future successful repo.containsKey(id)
 
-  override def getOutdatedChecks(
-      offsetDateTime: OffsetDateTime
-  ): Future[Seq[Check]] =
+  override def getOutdatedChecks(offsetDateTime: OffsetDateTime): Future[Seq[Check]] =
     Future successful repo.asScala.values
       .filter(
         check =>
           check.lastCheck
             .plusSeconds(check.interval)
-            .isBefore(offsetDateTime) && !check.inProgress && !check.isPaused && !check.isDeleted
+            .isBefore(offsetDateTime) && !check.isPaused && !check.isDeleted
       )
       .toSeq
 
-  override def markChecksToInProgress(ids: Seq[UUID]): Future[Unit] = Future successful {
+  override def updateCheckLastCheckDate(ids: Seq[UUID]): Future[Unit] = Future successful {
     val updatedChecks =
       repo.asScala.values
-        .filter(check => ids.contains(check.id) && !check.isPaused && !check.isDeleted && !check.inProgress)
-        .map(check => check.copy(inProgress = true))
+        .filter(check => ids.contains(check.id) && !check.isPaused && !check.isDeleted)
+        .map(check => check.copy(lastCheck = OffsetDateTime.now()))
     updatedChecks.foreach(check => repo.asScala.replace(check.id, check))
   }
-  override def getOutdatedChecks(
-      count: Int
-  ): Future[Seq[Check]] =
-    Future successful {
-      repo.asScala.values
-        .filter(check => check.inProgress && !check.isPaused && !check.isDeleted)
-        .toSeq
-        .sortBy(check => check.lastCheck.plusSeconds(check.interval))
-        .take(count)
-    }
-  override def updateCheckLastUpdate(id: UUID): Future[Unit] = Future successful {
-    repo.asScala
-      .get(id)
-      .map(check => repo.replace(id, check.copy(inProgress = false, lastCheck = OffsetDateTime.now())))
-    ()
-  }
-  override def updateChecksLastUpdate(ids: Seq[UUID]): Future[Unit] = Future successful {
-    repo.asScala.values
-      .filter(check => ids.contains(check.id) && !check.isPaused && !check.isDeleted)
-      .foreach(
-        check => repo.asScala.replace(check.id, check.copy(inProgress = false, lastCheck = OffsetDateTime.now()))
-      )
-    ()
-  }
+  override def getByIds(ids: Seq[UUID]): Future[Seq[Check]] =
+    Future successful repo.asScala.values.filter(check => ids.contains(check.id)).toSeq
 }

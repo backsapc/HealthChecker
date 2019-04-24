@@ -1,6 +1,6 @@
 package backsapc.healthchecker.checker.implementation
 
-import java.net.InetAddress
+import java.net.{ InetAddress, UnknownHostException }
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -24,9 +24,13 @@ class PingCheckerImpl(implicit actorSystem: ActorSystem, materializer: ActorMate
   override def doCheck(
       check: PingCheckModel
   ): Future[CheckResult] = Future {
-    val address = InetAddress.getByName(check.ip)
-    if (address.isReachable(pingWaitTimeout)) SuccessCheckResult(check.id)
-    else FailedCheckResult(check.id, s"${check.ip} is unreachable")
+    try {
+      val address = InetAddress.getByName(check.ip)
+      if (address.isReachable(pingWaitTimeout)) SuccessCheckResult(check.id)
+      else FailedCheckResult(check.id, s"${check.ip} is unreachable.")
+    } catch {
+      case _: UnknownHostException => FailedCheckResult(check.id, s"${check.ip} is unknown host.")
+    }
   }
 
 }

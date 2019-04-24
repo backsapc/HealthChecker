@@ -5,8 +5,8 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
-import backsapc.healthchecker.checker.contracts.CheckerService
-import backsapc.healthchecker.checker.dao.InMemoryCheckerRepository
+import backsapc.healthchecker.checker.contracts._
+import backsapc.healthchecker.checker.dao.{ InMemoryCheckEventRepository, InMemoryCheckerRepository }
 import backsapc.healthchecker.checker.implementation.{
   CheckerServiceImpl,
   HttpCheckerImpl,
@@ -47,12 +47,21 @@ object HealthCheckerServer extends App with Config {
   val userService        = new UserServiceImpl(accountRepository, bcrypt, notificationClient)
   val user               = new UserRouter(tokenService, userService)
 
+  val checkerJobRepository           = new InMemoryCheckEventRepository
   val checkerRepository              = new InMemoryCheckerRepository
   val checkerHttp                    = new HttpCheckerImpl
   val checkerContent                 = new HttpContentCheckerImpl
   val checkerPing                    = new PingCheckerImpl
   val checkerService: CheckerService = new CheckerServiceImpl(checkerRepository)
   val checker                        = new CheckerRouter(checkerService)
+  val checkerNotificationClient =
+    new backsapc.healthchecker.checker.implementation.NotificationClientImpl(notificationService)
+  val serviceLocator = new ServiceLocator {
+    override val httpChecker: HttpChecker               = checkerHttp
+    override val httpContentChecker: HttpContentChecker = checkerContent
+    override val pingChecker: PingChecker               = checkerPing
+    override val notificationClient: NotificationClient = checkerNotificationClient
+  }
 
   val checkJobScheduler = new CheckJobScheduler()
 
@@ -63,7 +72,7 @@ object HealthCheckerServer extends App with Config {
 
   serverBinding.onComplete {
     case Success(bound) =>
-      checkJobScheduler.run(checkerRepository, checkerRepository, checkerHttp, checkerContent, checkerPing)
+      checkJobScheduler.run(checkerRepository, checkerJobRepository, serviceLocator)
       println(
         s"Server online at http://${bound.localAddress.getHostString}:${bound.localAddress.getPort}/"
       )

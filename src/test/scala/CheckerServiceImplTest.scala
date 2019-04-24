@@ -40,8 +40,7 @@ class CheckerServiceImplTest extends AsyncFlatSpec with AsyncMockFactory with Ma
     None,
     None,
     None,
-    OffsetDateTime.now(),
-    inProgress = false
+    OffsetDateTime.now()
   )
 
   val mockCreateHttpCheck: CreateHttpCheck =
