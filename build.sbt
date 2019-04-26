@@ -2,6 +2,7 @@ name := "HealthChecker"
 version := "0.1"
 scalaVersion in ThisBuild := "2.12.8"
 organization in ThisBuild := "org.backsapc"
+maintainer := "backsapce@hotmail.com"
 
 // https://docs.scala-lang.org/overviews/compiler-options/index.html
 val scalacCompileOpts = Seq(
@@ -10,44 +11,40 @@ val scalacCompileOpts = Seq(
   // "-deprecation:false", // uncomment if you *must* use deprecated apis
   "-Xfatal-warnings",
   "-Ywarn-value-discard",
-  "-Xlint:unsound-match"
+  "-Xlint:unsound-match",
+  "-deprecation"
 )
 
-lazy val checker = (project in file("services/checker"))
-  .settings(
-    name := "checker",
-    libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-stream" % "2.5.21",
-      "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.21" % Test,
-      "com.typesafe.akka" %% "akka-http" % "10.1.7",
-      "com.typesafe.akka" %% "akka-http-testkit" % "10.1.7" % Test,
-      "org.scalatest"     %% "scalatest" % "3.0.3" % Test
-    ),
-    scalacOptions in(Compile, compile) ++= scalacCompileOpts
-  )
+lazy val akkaHttpVersion = "10.1.8"
+lazy val akkaVersion     = "2.5.21"
 
-lazy val notification = (project in file("services/notification"))
-  .settings(
-    name := "notification",
-    libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-stream" % "2.5.21",
-      "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.21" % Test,
-      "com.typesafe.akka" %% "akka-http" % "10.1.7",
-      "com.typesafe.akka" %% "akka-http-testkit" % "10.1.7" % Test,
-      "org.scalatest"     %% "scalatest" % "3.0.3" % Test
-    ),
-    scalacOptions in(Compile, compile) ++= scalacCompileOpts
-  )
+resolvers ++= Seq("snapshots", "releases").map(Resolver.sonatypeRepo)
+resolvers += "spray repo" at "http://repo.spray.io"
 
-lazy val user = (project in file("services/user"))
-  .settings(
-    name := "user",
-    libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-stream" % "2.5.21",
-      "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.21" % Test,
-      "com.typesafe.akka" %% "akka-http" % "10.1.7",
-      "com.typesafe.akka" %% "akka-http-testkit" % "10.1.7" % Test,
-      "org.scalatest"     %% "scalatest" % "3.0.3" % Test
-    ),
-    scalacOptions in(Compile, compile) ++= scalacCompileOpts
-  )
+libraryDependencies ++= Seq(
+  "com.typesafe.slick"    %% "slick"                % "3.3.0",
+  "org.slf4j"             % "slf4j-nop"             % "1.6.4",
+  "com.typesafe.slick"    %% "slick-hikaricp"       % "3.3.0",
+  "com.h2database"        % "h2"                    % "1.4.199",
+  "com.jason-goodwin"     %% "authentikat-jwt"      % "0.4.5",
+  "com.github.t3hnar"     %% "scala-bcrypt"         % "4.0",
+  "com.beachape"          %% "enumeratum"           % "1.5.13",
+  "io.lemonlabs"          %% "scala-uri"            % "1.4.5",
+  "com.github.daddykotex" %% "courier"              % "1.0.0",
+  "com.typesafe.akka"     %% "akka-http"            % akkaHttpVersion,
+  "com.typesafe.akka"     %% "akka-http-spray-json" % akkaHttpVersion,
+  "com.typesafe.akka"     %% "akka-http-xml"        % akkaHttpVersion,
+  "com.typesafe.akka"     %% "akka-stream"          % akkaVersion,
+  "com.typesafe.akka"     %% "akka-actor"           % akkaVersion,
+  "com.typesafe.akka"     %% "akka-testkit"         % akkaVersion % Test,
+  "com.typesafe.akka"     %% "akka-stream-testkit"  % akkaVersion % Test,
+  "com.typesafe.akka"     %% "akka-http-testkit"    % akkaHttpVersion % Test,
+  "org.scalatest"         %% "scalatest"            % "3.0.3" % Test,
+  "org.scalamock"         %% "scalamock"            % "4.1.0" % Test
+)
+
+scalacOptions in ThisBuild ++= scalacCompileOpts
+coverageEnabled := true
+
+enablePlugins(JavaAppPackaging)
+enablePlugins(UniversalPlugin)
